@@ -9,7 +9,7 @@ type ClientTotalInfo struct {
 
 type ClientDetail struct {
 	ClientId         int `json:"client_id"`
-	Name             string `json:"nom"`
+	Name             string `json:"name"`
 	Phone            string `json:"phone"`
 	ChallengesDone   int    `json:"challengesDone"`
 	Address          string `json:"address"`
@@ -50,10 +50,4 @@ type ProductionQueryInfos struct {
 	ClientAddress string
 	StartDate string
 	EndDate string
-}
-
-
-type TagClient struct {
-	TagID int
-	Name string
 }

@@ -3,53 +3,50 @@ package dao
 import (
 	"data-back-real/model"
 	"database/sql"
-	"fmt"
 	"log"
 	"strconv"
 )
 
-func QueryClientsAlertsFromConseillerID(db *sql.DB, idString string) []model.AlertsDetails {
+// QueryClientsAlertsFromConseillerID returns alerts for a given employee id
+func QueryClientsAlertsFromConseillerID(db *sql.DB, idString string) ([]model.AlertsDetails, error) {
+	var ad []model.AlertsDetails
 
 	id, err := strconv.Atoi(idString)
 	if err != nil {
-		fmt.Println(err.Error())
+		return nil, err
 	}
 	rows, err := db.Query("SELECT alert_id, client_id, conseiller_id, date, motif FROM alerts WHERE conseiller_id = $1", id); if err != nil {
-		fmt.Println(err.Error())
+		return nil, err
 	}
 	defer rows.Close()
 
-	var allResult []model.AlertsDetails
-
 	var i = 0
 	for rows.Next() {
-		var alert model.AlertsDetails
-		err := rows.Scan(&alert.AlertId, &alert.ClientId, &alert.ConseillerId, &alert.Date,  &alert.Motif); if err != nil {
-			log.Fatal(err)
+		var a model.AlertsDetails
+		err := rows.Scan(&a.AlertId, &a.ClientId, &a.ConseillerId, &a.Date,  &a.Motif); if err != nil {
+			return nil, err
 		}
-		allResult = append(allResult, alert)
-
+		ad = append(ad, a)
 		i++
 		if i == 10 {
-			return allResult
+			return ad, nil
 		}
 	}
-
-	return allResult
+	return ad, nil
 }
 
-func QueryClientsAlertsFromClientID(db *sql.DB, idString string) []model.AlertsDetails {
+// QueryClientsAlertsFromConseillerID returns alerts for a given client id
+func QueryClientsAlertsFromClientID(db *sql.DB, idString string) ([]model.AlertsDetails, error) {
+	var ad []model.AlertsDetails
 
 	id, err := strconv.Atoi(idString)
 	if err != nil {
-		fmt.Println(err.Error())
+		return nil, err
 	}
 	rows, err := db.Query("SELECT alert_id, client_id, conseiller_id, date, motif FROM alerts WHERE client_id = $1", id); if err != nil {
-		fmt.Println(err.Error())
+		return nil, err
 	}
 	defer rows.Close()
-
-	var allResult []model.AlertsDetails
 
 	var i = 0
 	for rows.Next() {
@@ -57,13 +54,11 @@ func QueryClientsAlertsFromClientID(db *sql.DB, idString string) []model.AlertsD
 		err := rows.Scan(&alert.AlertId, &alert.ClientId, &alert.ConseillerId, &alert.Date,  &alert.Motif); if err != nil {
 			log.Fatal(err)
 		}
-		allResult = append(allResult, alert)
-
+		ad = append(ad, alert)
 		i++
 		if i == 10 {
-			return allResult
+			return ad, nil
 		}
 	}
-
-	return allResult
+	return ad, nil
 }

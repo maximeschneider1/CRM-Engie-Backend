@@ -9,9 +9,10 @@ type HomeInfo struct {
 }
 
 type Todo struct {
-	Name string
-	Id int
-	Telephone string
+	Id       int
+	ClientID int
+	Name     string
+	Phone    string
 	Category string
-	Motif string
+	Motif    string
 }

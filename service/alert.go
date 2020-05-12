@@ -3,76 +3,79 @@ package service
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 )
 type lastProduction struct {
-	alertID int
-	clientID int
-	conseilleriD int
-	address string
+	alertID    int
+	clientID   int
+	employeeID int
+	address    string
 	latestProd []float64
-	motif string
+	motif      string
 }
 
 // Limit variable is the loss of production % where the system thinks there is a problem with the panel production.
 var limit = 90.0
+var scheduling = 5 * time.Hour
 
-func LowConso(db *sql.DB)  {
+// LowConsoDetection alerts loop on the database every scheduled time, searches for drastic loss of a
+// client's solar panel production and logs an alert in the database if a loss is found
+func LowConsoDetection(db *sql.DB)  {
 
-	ticker := time.NewTicker(5 * time.Hour)
-	var clientAddress string
-	var allAddress []string
-	var allRecentProdAdress []lastProduction
+	var ticker = time.NewTicker(scheduling)
+	var allRecentProductions []lastProduction
 	var problematicProduction []lastProduction
 
 		for {
 			select {
 			case t := <-ticker.C:
-				fmt.Println("Tick at", t)
+				log.Println("Tick at", t)
 
-				// chope toute les adress
+				// Select all addresses
 				addresses, err := db.Query("SELECT street FROM hd_copy WHERE  date BETWEEN SYMMETRIC '2019-11-20' AND '2019-12-01' GROUP BY street;"); if err != nil {
-					fmt.Println("Error querying addresses for alert check", err.Error())
+					log.Println("Error querying addresses for alert check, error :", err.Error())
 				}
 				err = addresses.Err(); if err != nil {
-					fmt.Printf("Error querying the addresses %v", err)
+					log.Printf("Error querying the addresses, error : %v", err)
 				}
 				defer addresses.Close()
-
+				var ad string
+				var allAddresses []string
 				for addresses.Next() {
-					err := addresses.Scan(&clientAddress); if err != nil {
-						fmt.Println("Error Scanning selected row for addresses :", err.Error())
+					err := addresses.Scan(&ad); if err != nil {
+						log.Println("Error Scanning selected row for addresses :", err.Error())
 						return
 					}
-					allAddress = append(allAddress, clientAddress)
+					allAddresses = append(allAddresses, ad)
 				}
 
-				for _, ad := range allAddress {
+				// For all addresses, select the last production, we take a reference date of the 1st december
+				// of 2019 as it is the time with the most clients values at the same time in the database
+				for _, ad := range allAddresses {
 					var recentProdAdress lastProduction
-
 					lastProduction, err := db.Query("SELECT from_gen_to_consumer FROM hd_copy WHERE street = $1 AND  date BETWEEN SYMMETRIC '2019-11-20' AND '2019-12-01';", ad); if err != nil {
-						fmt.Println("Error querying production info for selected address", err.Error())
+						log.Println("Error querying production info for selected address", err.Error())
 					}
 					err = lastProduction.Err(); if err != nil {
-						fmt.Printf("Error querying the addresses %v", err)
+						log.Printf("Error querying the production for address : %v, error : %v", ad,  err)
 					}
 					defer lastProduction.Close()
-
 					for lastProduction.Next() {
 						var recentProd float64
 						err := lastProduction.Scan(&recentProd); if err != nil {
-							fmt.Println("Error Scanning selected row for address for production :", err.Error())
+							log.Println("Error Scanning selected row for address for production, error :", err.Error())
 							return
 						}
 						recentProdAdress.address = ad
 						recentProdAdress.latestProd = append(recentProdAdress.latestProd, recentProd)
 					}
-					allRecentProdAdress = append(allRecentProdAdress, recentProdAdress)
+					allRecentProductions = append(allRecentProductions, recentProdAdress)
 				}
 
-				// Pour chaque address query la production des 10 derniers jours
-				for _, a := range allRecentProdAdress {
-					// Faire la moyenne de la production des 10 derniers jours
+				// For every production of every clients, check for drastic loss of solar panel production
+				for _, a := range allRecentProductions {
+					// Find the average production during on the last 10 days
 					sum := 0.0
 
 					for _, valuex := range a.latestProd {
@@ -82,13 +85,13 @@ func LowConso(db *sql.DB)  {
 
 					average := sum / float64(len(a.latestProd))
 					if average == 0 {
-						fmt.Println("Not enough data to establish a diagnostic on address :", a.address)
+						log.Println("Not enough data to establish a diagnostic on address :", a.address)
 						continue
 					}
 					diff := percentageChange(average, lastValue)
 
-					// Comparer aujourd'hui à la moyenne des 10 derniers jours si la différence est de + de 90%
-					if diff < - limit {
+					// If the difference of the last production is superior to the limit, system considers there is a problem
+					if diff < limit {
 						problematicProduction = append(problematicProduction, a)
 					}
 				}
@@ -96,37 +99,35 @@ func LowConso(db *sql.DB)  {
 				// Trouver le client à partir de l'adresse, puis le conseiller
 				// Faire un post dans la table "alerte conso"
 				for _, o := range problematicProduction {
-
 					var lastID int
-
-					fmt.Println("Production issues detected  :", o.address,  o.latestProd)
+					log.Println("Production issues detected  :", o.address,  o.latestProd)
 
 					// Mettre toutes les streets à la suite dans 1 seule query pour optimiser ?
 					err := db.QueryRow("SELECT client_id FROM foyer WHERE street = $1", o.address).Scan(&o.clientID); if err != nil {
-						fmt.Printf("Error querying client ID for address : %v for alert check :", o.address, err.Error())
+						log.Printf("Error querying client ID for address : %v for alert check :", o.address, err.Error())
 					}
 
 					// Mettre toutes les streets à la suite dans 1 seule query pour optimiser ?
-					err = db.QueryRow("SELECT conseiller_id FROM clients WHERE client_id = $1", o.clientID).Scan(&o.conseilleriD); if err != nil {
-						fmt.Printf("Error querying conseiller ID for address : %v for alert check :", o.address, err.Error())
+					err = db.QueryRow("SELECT conseiller_id FROM clients WHERE client_id = $1", o.clientID).Scan(&o.employeeID); if err != nil {
+						log.Printf("Error querying conseiller ID for address : %v for alert check :", o.address, err.Error())
 					}
 
 					txn, err := db.Begin(); if err != nil {
-						fmt.Printf("Error begining transaction : %v '%'", err.Error())
+						log.Printf("Error begining transaction : %v '%'", err.Error())
 					}
 
 					txn.QueryRow("SELECT COUNT(*) FROM alerts;").Scan(&lastID)
 					o.alertID = lastID + 1
 					o.motif = fmt.Sprintf("Baisse de consommation supérieure à %v pourcent", limit)
 
-					_, err = txn.Exec("INSERT INTO alerts (alert_id, client_id, conseiller_id, date, motif) VALUES ($1, $2, $3, $4, $5);", o.alertID, o.clientID, o.conseilleriD, time.Now(), o.motif)
+					_, err = txn.Exec("INSERT INTO alerts (alert_id, client_id, conseiller_id, date, motif) VALUES ($1, $2, $3, $4, $5);", o.alertID, o.clientID, o.employeeID, time.Now(), o.motif)
 					if err != nil {
-						fmt.Println("Error inserting rows:", err)
+						log.Println("Error inserting rows:", err)
 					}
 
 					txn.Commit()
 
-					fmt.Printf("Success writing alert to DB for : %#v", o)
+					log.Printf("Success writing alert to DB for : %#v", o)
 				}
 			}
 		}

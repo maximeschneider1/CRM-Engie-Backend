@@ -10,27 +10,27 @@ func GetScoreFromLeadID(id int)  {
 
 	//lead := CriteraAdaptor(id)
 	//
-	//score := Lead.scoreCalculator()
+	//score := Lead.ScoreCalculator()
 
 }
 
-// scoreCalculator gives back the score once lead info are available
-func scoreCalculator(l model.Lead) int {
+// ScoreCalculator gives back the score once lead info are available
+func ScoreCalculator(l model.Lead) int {
 	var score int
 	score = l.ContentDownloaded + l.TimeSpent + l.OpenedEmails + l.Profitability - l.WeeksSinceInactive
 	return score
 }
 
-// fromDBToWeightedCriteras gives back a Lead struct filled with all necessary infos to calculate the score
-func fromDBToWeightedCriteras(l model.Lead) model.Lead {
+// FromDBToWeightedCriteras gives back a Lead struct filled with all necessary infos to calculate the score
+func FromDBToWeightedCriteras(l model.Lead) model.Lead {
 
-	l.ContentDownloaded = SiteContentWeightScore(l.ContentDownloaded)
+	l.ContentDownloaded = siteContentWeightScore(l.ContentDownloaded)
 
 	return l
 }
 
-// SiteContentWeightScore returns the weight of the amount of site contents user downloaded
-func SiteContentWeightScore(number int) int  {
+// siteContentWeightScore returns the weight of the amount of site contents user downloaded
+func siteContentWeightScore(number int) int  {
 	var weight = 0
 
 	if number == 0 {

@@ -1,17 +1,16 @@
 package model
 
-
-
-// Lead struct gather infos we have about the lead
 type Lead struct {
 	LeadID		int `json:"lead_id"`
-	Name           string `json:"nom"`
+	Name           string `json:"name"`
+	Email string `json:"email"`
 	Phone          string `json:"phone"`
 	Address        string `json:"address"`
 	Score          int    `json:"score"`
 	FirstContact string
 	City string
-
+	Step int
+	StepConverted string
 	ContentDownloaded int
 	TimeSpent int
 	OpenedEmails int
@@ -25,11 +24,4 @@ type LeadHistory struct {
 	Icon string
 	Date string
 	Comment string
-}
-
-type LeadTags struct {
-	LeadID int
-	TagID int
-	TagContent string
-	TagIcon string
 }
