@@ -49,7 +49,7 @@ Bugs (back-end)
 Next development : 
 - Within our project for Engie, we planned for them to do another version of the CRM focused on the visualisation of the strategic, macro aspects of EngieMyPower. 
 
-Lexicon link : 
+Lexicon link : https://docs.google.com/presentation/d/1b48w6EabOYgOsAeivg8ciun6pJnAIoscctrNvCbXaBs/edit?usp=sharing
 
 
 
