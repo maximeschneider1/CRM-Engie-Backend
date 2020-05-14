@@ -61,6 +61,7 @@ func QueryLeadInfoFromLeadID(db *sql.DB, leadID string) (model.Lead, error) {
 		cd.WeeksSinceInactive = rand.Intn(30 - 1) + 1
 		cd = service.FromDBToWeightedCriteras(cd)
 		cd.Score = service.ScoreCalculator(cd)
+		cd.Address = "20 rue Rousseau"
 		cd.StepConverted = stepConverter(cd.Step)
 	}
 
@@ -74,6 +75,8 @@ func QueryLeadHistoryFromLeadID(db *sql.DB, leadID int) ([]model.LeadHistory, er
 
 	for i := 1;  i<=10; i++ {
 		defaultLeadHistory.LeadID = leadID
+		defaultLeadHistory.Comment = historyConverter(rand.Intn(4 - 1) + 1)
+		defaultLeadHistory.Icon = iconConverter(rand.Intn(4 - 1) + 1)
 		lh = append(lh, defaultLeadHistory)
 		i++
 	}
@@ -97,13 +100,43 @@ func QueryLeadTagsFromLeadID(db *sql.DB, leadID int) ([]model.LeadTags, error) {
 func stepConverter(s int) string {
 	switch s {
 	case 1 :
-		return "Etape 1"
+		return "Découverte"
 	case 2 :
-		return "Etape 2"
+		return "Compatibilité"
 	case 3 :
-		return "Etape 3"
+		return "Signature"
 	case 4 :
-		return "Etape 4"
+		return "Installation"
 	}
-	return "Etape 2"
+	return "Installation"
+}
+
+// historyConverter is used to simulate the lead contact history
+func historyConverter(s int) string {
+	switch s {
+	case 1 :
+		return "Mail"
+	case 2 :
+		return "Appel"
+	case 3 :
+		return "Renseignement"
+	case 4 :
+		return "Rendez-vous"
+	}
+	return "Rendez-vous"
+}
+
+// iconConverter is used to simulate the lead contact history icon
+func iconConverter(s int) string {
+	switch s {
+	case 1 :
+		return "mdi-phone"
+	case 2 :
+		return "mdi-email"
+	case 3 :
+		return "mdi-calendar-check"
+	case 4 :
+		return "mdi-solar-power"
+	}
+	return "mdi-email"
 }

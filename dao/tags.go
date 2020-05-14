@@ -48,7 +48,7 @@ func AddClientTagWithClientID(db *sql.DB, clientID string,  name string) error {
 	var lastID int
 	err := db.QueryRow("SELECT tag_id FROM tags ORDER BY tag_id DESC LIMIT 1;").Scan(&lastID)
 	if err != nil {
-		fmt.Println("Error querying last tag id, error :", err.Error())
+		log.Println("Error querying last tag id, error :", err.Error())
 		return err
 	}
 	// Post tag in the DB
@@ -57,7 +57,7 @@ func AddClientTagWithClientID(db *sql.DB, clientID string,  name string) error {
 		log.Println("Error begining transaction :", err.Error())
 		return err
 	}
-	_, err = tx.ExecContext(ctx, "INSERT INTO tags (tag_id, client_id, name) VALUES ($1, $2, $3)", lastID + 1, clientID[1], name[1]); if err != nil {
+	_, err = tx.ExecContext(ctx, "INSERT INTO tags (tag_id, client_id, name) VALUES ($1, $2, $3)", lastID + 1, clientID, name); if err != nil {
 		// In case we find any error in the query execution, rollback the transaction
 		log.Println("Error executing transaction :", err.Error())
 		err = tx.Rollback(); if err != nil {
